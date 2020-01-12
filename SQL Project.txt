@@ -291,7 +291,78 @@ Include in your output the name of the court, and the name of the member
 formatted as a single column. Ensure no duplicate data, and order by
 the member name. */
 
+SELECT DISTINCT CONCAT( m.firstname, ' ', m.surname ) AS member, f.name AS Facility
+FROM Bookings b, Facilities f, Members m
+WHERE m.memid = b.memid
+AND f.facid = b.facid
+AND f.name LIKE 'Tennis Court%'
+GROUP BY m.firstname, f.name
+ORDER BY m.firstname
+LIMIT 0 , 30
 
+
+member
+Facility
+Anne Baker
+Tennis Court 1
+Anne Baker
+Tennis Court 2
+Burton Tracy
+Tennis Court 1
+Burton Tracy
+Tennis Court 2
+Charles Owen
+Tennis Court 1
+Charles Owen
+Tennis Court 2
+Darren Smith
+Tennis Court 2
+David Jones
+Tennis Court 1
+David Jones
+Tennis Court 2
+Douglas Jones
+Tennis Court 1
+Erica Crumpet
+Tennis Court 1
+Florence Bader
+Tennis Court 1
+Florence Bader
+Tennis Court 2
+Gerald Butters
+Tennis Court 1
+Gerald Butters
+Tennis Court 2
+GUEST GUEST
+Tennis Court 1
+GUEST GUEST
+Tennis Court 2
+Henrietta Rumney
+Tennis Court 2
+Jack Smith
+Tennis Court 1
+Jack Smith
+Tennis Court 2
+Janice Joplette
+Tennis Court 1
+Janice Joplette
+Tennis Court 2
+Jemima Farrell
+Tennis Court 1
+Jemima Farrell
+Tennis Court 2
+Joan Coplin
+Tennis Court 1
+John Hunt
+Tennis Court 1
+John Hunt
+Tennis Court 2
+Matthew Genting
+Tennis Court 1
+Millicent Purview
+Tennis Court 2
+Nancy Dare
+Tennis Court 1
 
 
 /* Q8: How can you produce a list of bookings on the day of 2012-09-14 which
@@ -301,10 +372,168 @@ the guest user's ID is always 0. Include in your output the name of the
 facility, the name of the member formatted as a single column, and the cost.
 Order by descending cost, and do not use any subqueries. */
 
+SELECT CONCAT( m.firstname, ' ', m.surname ) AS Member, f.name AS Facility,
+CASE WHEN b.memid =0
+THEN f.guestcost * slots
+ELSE f.membercost * slots
+END AS cost
+FROM Bookings b
+LEFT JOIN Facilities f ON f.facid = b.facid
+LEFT JOIN Members m ON m.memid = b.memid
+WHERE b.starttime LIKE '2012-09-14%'
+AND (
+(
+b.memid =0
+AND f.guestcost * slots >30
+)
+OR (
+b.memid !=0
+AND f.membercost * slots >30
+)
+)
+ORDER BY cost DESC
+LIMIT 0 , 30
+
+
+Member
+Facility
+cost Descending
+GUEST GUEST
+Massage Room 2
+320.0
+GUEST GUEST
+Massage Room 1
+160.0
+GUEST GUEST
+Massage Room 1
+160.0
+GUEST GUEST
+Massage Room 1
+160.0
+GUEST GUEST
+Tennis Court 2
+150.0
+GUEST GUEST
+Tennis Court 1
+75.0
+GUEST GUEST
+Tennis Court 2
+75.0
+GUEST GUEST
+Tennis Court 1
+75.0
+GUEST GUEST
+Squash Court
+70.0
+Jemima Farrell
+Massage Room 1
+39.6
+GUEST GUEST
+Squash Court
+35.0
+GUEST GUEST
+Squash Court
+35.0
+
+
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
+
+SELECT CONCAT( m.firstname, ' ', m.surname ) AS Member, f.name AS Facility,
+CASE WHEN b.memid =0
+THEN f.guestcost * slots
+ELSE f.membercost * slots
+END AS cost
+FROM Bookings b
+LEFT JOIN Facilities f ON f.facid = b.facid
+LEFT JOIN Members m ON m.memid = b.memid
+WHERE b.starttime LIKE '2012-09-14%'
+AND b.bookid
+IN (
+
+SELECT bookid
+FROM Bookings b, Facilities f
+WHERE f.facid = b.facid
+AND starttime LIKE '2012-09-14%'
+AND b.memid =0
+AND b.slots * f.guestcost >30
+UNION
+SELECT bookid
+FROM Bookings b, Facilities f
+WHERE f.facid = b.facid
+AND starttime LIKE '2012-09-14%'
+AND b.memid !=0
+AND b.slots * f.membercost >30
+)
+ORDER BY cost DESC
+LIMIT 0 , 30
+
+Member
+Facility
+cost Descending
+GUEST GUEST
+Massage Room 2
+320.0
+GUEST GUEST
+Massage Room 1
+160.0
+GUEST GUEST
+Massage Room 1
+160.0
+GUEST GUEST
+Massage Room 1
+160.0
+GUEST GUEST
+Tennis Court 2
+150.0
+GUEST GUEST
+Tennis Court 2
+75.0
+GUEST GUEST
+Tennis Court 1
+75.0
+GUEST GUEST
+Tennis Court 1
+75.0
+GUEST GUEST
+Squash Court
+70.0
+Jemima Farrell
+Massage Room 1
+39.6
+GUEST GUEST
+Squash Court
+35.0
+GUEST GUEST
+Squash Court
+35.0
 
 
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
+
+SELECT name, total_revenue
+FROM (
+
+SELECT f.name name, SUM(
+CASE WHEN b.memid =0
+THEN b.slots * f.guestcost
+ELSE b.slots * f.membercost
+END ) total_revenue
+FROM Facilities f, Bookings b
+WHERE f.facid = b.facid
+GROUP BY b.facid
+)s
+WHERE s.total_revenue <1000
+ORDER BY s.total_revenue DESC
+
+
+name
+total_revenue Ascending
+Pool Table
+270.0
+Snooker Table
+240.0
+Table Tennis
+180.0
